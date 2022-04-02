@@ -1060,6 +1060,9 @@ void aclk_send_dimension_update(RRDDIM *rd)
     if (!aclk_use_new_cloud_arch)
         return;
 
+    if (unlikely(!rd->rrdset->rrdhost->dbsync_worker))
+        return;
+
     char *claim_id = is_agent_claimed();
     if (unlikely(!claim_id))
         return;
