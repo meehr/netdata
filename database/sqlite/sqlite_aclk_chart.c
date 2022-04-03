@@ -179,14 +179,14 @@ static inline int aclk_upd_dimension_event(struct aclk_database_worker_config *w
     struct chart_dimension_updated dim_payload;
     memset(&dim_payload, 0, sizeof(dim_payload));
 
-#ifdef NETDATA_INTERNAL_CHECKS
+//#ifdef NETDATA_INTERNAL_CHECKS
     if (!first_time)
         info("Host %s (node %s) deleting dimension id=[%s] name=[%s] chart=[%s]",
                 wc->host_guid, wc->node_id, dim_id, dim_name, chart_type_id);
     if (last_time)
         info("Host %s (node %s) stopped collecting dimension id=[%s] name=[%s] chart=[%s] %ld seconds ago at %ld",
              wc->host_guid, wc->node_id, dim_id, dim_name, chart_type_id, now_realtime_sec() - last_time, last_time);
-#endif
+//#endif
 
     dim_payload.node_id = wc->node_id;
     dim_payload.claim_id = claim_id;
@@ -1203,6 +1203,9 @@ void sql_check_chart_liveness(RRDSET *st) {
     RRDDIM *rd;
 
     if (unlikely(st->state->is_ar_chart))
+        return;
+
+    if (!aclk_use_new_cloud_arch || !aclk_connected)
         return;
 
     rrdset_rdlock(st);
