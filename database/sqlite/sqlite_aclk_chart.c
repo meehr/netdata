@@ -199,7 +199,7 @@ static inline int aclk_upd_dimension_event(struct aclk_database_worker_config *w
     if (likely(payload))
         rc = aclk_add_chart_payload(wc, dim_uuid, claim_id, ACLK_PAYLOAD_DIMENSION, (void *)payload, size, send_status);
     freez(payload);
-    if ((*send_status) == 0) {
+    if (send_status && (*send_status) == 0) {
         if (!first_time)
             info("Host %s (node %s) deleting dimension id=[%s] name=[%s] chart=[%s]",
                  wc->host_guid, wc->node_id, dim_id, dim_name, chart_type_id);
