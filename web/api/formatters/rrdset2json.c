@@ -105,6 +105,7 @@ void rrdset2json(RRDSET *st, BUFFER *wb, size_t *dimensions_count, size_t *memor
         if(rrddim_flag_check(rd, RRDDIM_FLAG_HIDDEN) || rrddim_flag_check(rd, RRDDIM_FLAG_OBSOLETE)) continue;
 
         memory += rd->memsize;
+        rd->state->aclk_live_status = -1;
 
         if (dimensions)
             buffer_strcat(wb, ",\n\t\t\t\t\"");
