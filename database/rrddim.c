@@ -189,9 +189,9 @@ void rrdcalc_link_to_rrddim(RRDDIM *rd, RRDSET *st, RRDHOST *host) {
             }
         }
     }
-#ifdef ENABLE_ACLK
-    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
 }
 
 RRDDIM *rrddim_add_custom(RRDSET *st, const char *id, const char *name, collected_number multiplier,
@@ -437,9 +437,9 @@ RRDDIM *rrddim_add_custom(RRDSET *st, const char *id, const char *name, collecte
     ml_new_dimension(rd);
 
     rrdset_unlock(st);
-#ifdef ENABLE_ACLK
-    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
     return(rd);
 }
 
@@ -535,9 +535,9 @@ int rrddim_hide(RRDSET *st, const char *id) {
     (void) sql_set_dimension_option(&rd->state->metric_uuid, "hidden");
 
     rrddim_flag_set(rd, RRDDIM_FLAG_HIDDEN);
-#ifdef ENABLE_ACLK
-    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
     return 0;
 }
 
@@ -553,9 +553,9 @@ int rrddim_unhide(RRDSET *st, const char *id) {
     (void) sql_set_dimension_option(&rd->state->metric_uuid, NULL);
 
     rrddim_flag_clear(rd, RRDDIM_FLAG_HIDDEN);
-#ifdef ENABLE_ACLK
-    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
     return 0;
 }
 
@@ -568,18 +568,18 @@ inline void rrddim_is_obsolete(RRDSET *st, RRDDIM *rd) {
     }
     rrddim_flag_set(rd, RRDDIM_FLAG_OBSOLETE);
     rrdset_flag_set(st, RRDSET_FLAG_OBSOLETE_DIMENSIONS);
-#ifdef ENABLE_ACLK
-    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
 }
 
 inline void rrddim_isnot_obsolete(RRDSET *st __maybe_unused, RRDDIM *rd) {
     debug(D_RRD_CALLS, "rrddim_isnot_obsolete() for chart %s, dimension %s", st->name, rd->name);
 
     rrddim_flag_clear(rd, RRDDIM_FLAG_OBSOLETE);
-#ifdef ENABLE_ACLK
-    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
 }
 
 // ----------------------------------------------------------------------------
