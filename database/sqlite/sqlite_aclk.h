@@ -152,6 +152,7 @@ struct aclk_database_cmd {
     void *data_param;
     int count;
     uint64_t param1;
+    struct timeval created;
     struct aclk_completion *completion;
 };
 

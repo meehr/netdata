@@ -105,6 +105,7 @@ int aclk_database_enq_cmd_noblock(struct aclk_database_worker_config *wc, struct
     fatal_assert(queue_size < ACLK_DATABASE_CMD_Q_MAX_SIZE);
     /* enqueue command */
     wc->cmd_queue.cmd_array[wc->cmd_queue.tail] = *cmd;
+    now_realtime_timeval(&(wc->cmd_queue.cmd_array[wc->cmd_queue.tail].created));
     wc->cmd_queue.tail = wc->cmd_queue.tail != ACLK_DATABASE_CMD_Q_MAX_SIZE - 1 ?
                          wc->cmd_queue.tail + 1 : 0;
     wc->queue_size = queue_size + 1;
@@ -128,6 +129,7 @@ void aclk_database_enq_cmd(struct aclk_database_worker_config *wc, struct aclk_d
     fatal_assert(queue_size < ACLK_DATABASE_CMD_Q_MAX_SIZE);
     /* enqueue command */
     wc->cmd_queue.cmd_array[wc->cmd_queue.tail] = *cmd;
+    now_realtime_timeval(&(wc->cmd_queue.cmd_array[wc->cmd_queue.tail].created));
     wc->cmd_queue.tail = wc->cmd_queue.tail != ACLK_DATABASE_CMD_Q_MAX_SIZE - 1 ?
                          wc->cmd_queue.tail + 1 : 0;
     wc->queue_size = queue_size + 1;
@@ -348,7 +350,7 @@ static void timer_cb(uv_timer_t* handle)
 #endif
 }
 
-#define MAX_CMD_BATCH_SIZE (256)
+#define MAX_CMD_BATCH_SIZE (3000)
 
 void aclk_database_worker(void *arg)
 {
@@ -427,6 +429,8 @@ void aclk_database_worker(void *arg)
 
             opcode = cmd.opcode;
             ++cmd_batch_size;
+            struct timeval exec_start;
+            now_realtime_timeval(&exec_start);
             switch (opcode) {
                 case ACLK_DATABASE_NOOP:
                     /* the command queue was empty, do nothing */
@@ -540,6 +544,12 @@ void aclk_database_worker(void *arg)
                     debug(D_ACLK_SYNC, "%s: default.", __func__);
                     break;
             }
+//            if (opcode != ACLK_DATABASE_NOOP && opcode != ACLK_DATABASE_TIMER) {
+//                struct timeval now;
+//                now_realtime_timeval(&now);
+//                info("DEBUG: Opcode %u completed in %0.2f Exec=%0.2f (queued = %u)", opcode,
+//                     dt_usec(&now, &cmd.created) / 1000.0, dt_usec(&now, &exec_start) / 1000.0,  wc->queue_size);
+//            }
             if (cmd.completion)
                 aclk_complete(cmd.completion);
         } while (opcode != ACLK_DATABASE_NOOP);
