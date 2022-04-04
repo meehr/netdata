@@ -1487,7 +1487,7 @@ restart_after_removal:
                         }
 #if defined(ENABLE_ACLK) && defined(ENABLE_NEW_CLOUD_PROTOCOL)
                         else {
-                            aclk_send_dimension_update(rd);
+                            queue_dimension_to_aclk(rd);
                         }
 #endif
                     }
