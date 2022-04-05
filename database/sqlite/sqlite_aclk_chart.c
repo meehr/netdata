@@ -902,6 +902,9 @@ void aclk_update_retention(struct aclk_database_worker_config *wc, struct aclk_d
     time_t last_entry_t;
     uint32_t update_every = 0;
     uint32_t dimension_update_count = 0;
+    uint32_t total_checked = 0;
+    uint32_t total_deleted= 0;
+    uint32_t total_stopped= 0;
     time_t send_status;
 
     struct retention_updated rotate_data;
@@ -972,23 +975,28 @@ void aclk_update_retention(struct aclk_database_worker_config *wc, struct aclk_d
                     &send_status);
 
                 if (!send_status) {
-                    if (!first_entry_t)
+                    if (!first_entry_t) {
+                        total_deleted++;
                         info("Host %s (node %s) deleting dimension id=[%s] name=[%s] chart=[%s]",
                              wc->host_guid, wc->node_id,
                              (const char *) sqlite3_column_text(res, 3), (const char *)(const char *)sqlite3_column_text(res, 4), (const char *)(const char *)sqlite3_column_text(res, 2));
-                    if (last_entry_t)
+                    }
+                    if (last_entry_t) {
+                        total_stopped++;
                         info("Host %s (node %s) stopped collecting dimension id=[%s] name=[%s] chart=[%s] %ld seconds ago at %ld",
                              wc->host_guid, wc->node_id, (const char *) sqlite3_column_text(res, 3), (const char *)(const char *)sqlite3_column_text(res, 4),
                              (const char *)(const char *)sqlite3_column_text(res, 2), now_realtime_sec() - last_entry_t, last_entry_t);
+                    }
                     dimension_update_count++;
                 }
-                else
-                    info("Host %s (node %s) OK dimension id=[%s] name=[%s] chart=[%s] Sent at %ld (%ld seconds ago)",
-                         wc->host_guid, wc->node_id,
-                         (const char *) sqlite3_column_text(res, 3), (const char *)(const char *)sqlite3_column_text(res, 4), (const char *)(const char *)sqlite3_column_text(res, 2),
-                         send_status, now_realtime_sec() - send_status);
+//                else
+//                    info("Host %s (node %s) OK dimension id=[%s] name=[%s] chart=[%s] Sent at %ld (%ld seconds ago)",
+//                         wc->host_guid, wc->node_id,
+//                         (const char *) sqlite3_column_text(res, 3), (const char *)(const char *)sqlite3_column_text(res, 4), (const char *)(const char *)sqlite3_column_text(res, 2),
+//                         send_status, now_realtime_sec() - send_status);
             }
         }
+        total_checked++;
     }
     if (update_every) {
         debug(D_ACLK_SYNC, "Update %s for %u oldest time = %ld", wc->host_guid, update_every, start_time);
@@ -999,6 +1007,14 @@ void aclk_update_retention(struct aclk_database_worker_config *wc, struct aclk_d
                 rotate_data.rotation_timestamp.tv_sec - start_time;
         rotate_data.interval_duration_count++;
     }
+
+    char *hostname = NULL;
+    if (!wc->host)
+        hostname = get_hostname_by_node_id(wc->node_id);
+
+    log_access("ACLK STA [%s (%s)]: RETENTION MESSAGE SENT. CHECKED %u DIMENSIONS.  %u DELETED, %u STOPPED COLLECTING",
+               wc->node_id, wc->host ? wc->host->hostname : hostname ? hostname : "N/A", total_checked, total_deleted, total_stopped);
+    freez(hostname);
 
 #ifdef NETDATA_INTERNAL_CHECKS
     info("Retention update for %s (chart updates = %d)", wc->host_guid, wc->chart_updates);
