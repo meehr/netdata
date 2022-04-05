@@ -92,12 +92,12 @@ static int http_api_v2(struct aclk_query_thread *query_thr, aclk_query_t query)
 
 #ifdef NETDATA_WITH_ZLIB
     int z_ret;
-    BUFFER *z_buffer = buffer_create(NETDATA_WEB_RESPONSE_INITIAL_SIZE);
+    BUFFER *z_buffer = buffer_create(NETDATA_WEB_RESPONSE_INITIAL_SIZE * 64);
     char *start, *end;
 #endif
 
     struct web_client *w = (struct web_client *)callocz(1, sizeof(struct web_client));
-    w->response.data = buffer_create(NETDATA_WEB_RESPONSE_INITIAL_SIZE);
+    w->response.data = buffer_create(NETDATA_WEB_RESPONSE_INITIAL_SIZE * 64);
     w->response.header = buffer_create(NETDATA_WEB_RESPONSE_HEADER_SIZE);
     w->response.header_output = buffer_create(NETDATA_WEB_RESPONSE_HEADER_SIZE);
     strcpy(w->origin, "*"); // Simulate web_client_create_on_fd()
