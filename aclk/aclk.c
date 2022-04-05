@@ -1107,14 +1107,13 @@ void aclk_send_node_instances()
             uuid_unparse_lower(list->node_id, (char*)query->data.node_update.node_id);
             query->data.node_update.queryable = 1;
             query->data.node_update.session_id = aclk_session_newarch;
-            freez(list->hostname);
             info("Queuing status update for node=%s, live=%d, hops=%d",(char*)query->data.node_update.node_id,
                  list->live,
                  list->hops);
-            log_access("ACLK STA status update for node=%s, live=%d, hops=%d",(char*)query->data.node_update.node_id,
-                 list->live,
-                 list->hops);
-
+            log_access("ACLK STA [%s (%s)]: status update, live=%d, hops=%d",(char*)query->data.node_update.node_id,
+                       list->hostname ? list->hostname : "N/A",
+                       list->live, list->hops);
+            freez(list->hostname);
             aclk_queue_query(query);
         } else {
             aclk_query_t create_query;
@@ -1128,8 +1127,9 @@ void aclk_send_node_instances()
             uuid_unparse_lower(list->host_id, (char*)create_query->data.node_creation.machine_guid);
             info("Queuing registration for host=%s, hops=%d",(char*)create_query->data.node_creation.machine_guid,
                  list->hops);
-            log_access("ACLK STA Queuing registration for host=%s, hops=%d",(char*)create_query->data.node_creation.machine_guid,
-                 list->hops);
+            log_access("ACLK STA [%s (%s)]: REGISTER MGUID %s, live=%d, hops=%d","N/A",
+                       list->hostname ? list->hostname : "N/A", create_query->data.node_creation.machine_guid,
+                       list->live, list->hops);
             aclk_queue_query(create_query);
         }
 
