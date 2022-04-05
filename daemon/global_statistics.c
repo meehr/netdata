@@ -218,8 +218,9 @@ uint32_t streaming_stats_new_connection(char *hostname, char *guid)
     }
 
     //lock, atomic lock or smth
+    //and this is stupid, make it a linked list!
     children++;
-    info("SS children [%u]", children);
+    //info("SS children [%u]", children);
     streaming_statistics = reallocz(streaming_statistics, children * sizeof(struct streaming_statistics));
     streaming_statistics[children-1].hostname = strdupz(hostname);
     streaming_statistics[children-1].guid = strdupz(guid);
@@ -1026,11 +1027,11 @@ static void global_statistics_charts(void) {
 
     for (uint32_t i=0;i<children;i++)
         {
-            info ("SS %s %u %u", streaming_statistics[i].hostname, streaming_statistics[i].connected, streaming_statistics[i].set);
+            //info ("SS %s %u %u", streaming_statistics[i].hostname, streaming_statistics[i].connected, streaming_statistics[i].set);
             if (unlikely(!streaming_statistics[i].st)) {
                 streaming_statistics[i].st = rrdset_create_localhost(
                 "netdata"
-                , "streaming"
+                , streaming_statistics[i].hostname
                 , NULL
                 , "streaming"
                 , NULL
