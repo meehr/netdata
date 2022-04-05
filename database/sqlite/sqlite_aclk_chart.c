@@ -957,9 +957,9 @@ void aclk_update_retention(struct aclk_database_worker_config *wc, struct aclk_d
         if (likely(!rc && first_entry_t))
             start_time = MIN(start_time, first_entry_t);
 
-        if (memory_mode == RRD_MEMORY_MODE_DBENGINE && wc->chart_updates) {
+        if (memory_mode == RRD_MEMORY_MODE_DBENGINE && wc->chart_updates && (dimension_update_count < ACLK_MAX_DIMENSION_CLEANUP)) {
             int live = ((now - last_entry_t) < (RRDSET_MINIMUM_DIM_LIVE_MULTIPLIER * update_every));
-            if ((!live || !first_entry_t) && (dimension_update_count < ACLK_MAX_DIMENSION_CLEANUP)) {
+            if ((!live && !wc->host) || !first_entry_t) {
                 (void)aclk_upd_dimension_event(
                     wc,
                     claim_id,
