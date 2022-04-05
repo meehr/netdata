@@ -512,10 +512,10 @@ void rrddim_free_custom(RRDSET *st, RRDDIM *rd, int db_rotated)
             freez(rd);
             break;
     }
-#ifdef ENABLE_ACLK
-    if (db_rotated || RRD_MEMORY_MODE_DBENGINE != rrd_memory_mode)
-        rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
-#endif
+//#ifdef ENABLE_ACLK
+//    if (db_rotated || RRD_MEMORY_MODE_DBENGINE != rrd_memory_mode)
+//        rrdset_flag_clear(st, RRDSET_FLAG_ACLK);
+//#endif
 }
 
 
