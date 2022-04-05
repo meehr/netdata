@@ -205,7 +205,7 @@ static inline void global_statistics_copy(struct global_statistics *gs, uint8_t 
 #endif
 }
 
-struct streaming_statistics *streaming_stats_new_connection(char *hostname, char *guid)
+uint32_t streaming_stats_new_connection(char *hostname, char *guid)
 {
     info("SS Hello for %s", hostname);
 
@@ -213,7 +213,7 @@ struct streaming_statistics *streaming_stats_new_connection(char *hostname, char
     for (uint32_t i=0;i<children;i++) {
         if (!strcmp(streaming_statistics[i].guid, guid)) {
             streaming_statistics[i].connected++;
-            return streaming_statistics;
+            return i;
         }
     }
 
@@ -236,31 +236,31 @@ struct streaming_statistics *streaming_stats_new_connection(char *hostname, char
     streaming_statistics[children-1].overwrite=0;
     streaming_statistics[children-1].st = NULL;
 
-    return &streaming_statistics[children-1];
+    return children-1;
 }
 
-void streaming_stats_command(struct streaming_statistics *streaming_stats, char *command)
+void streaming_stats_command(uint32_t index, char *command)
 {
     if (!strncmp (command, "DISCONNECTED", 12)) {
-        streaming_stats->disconnected++;
+        streaming_statistics[index].disconnected++;
     } else if (!strncmp (command, "SET", 3)) {
-        streaming_stats->set++;
+        streaming_statistics[index].set++;
     } else if (!strncmp (command, "END", 3)) {
-        streaming_stats->end++;
+        streaming_statistics[index].end++;
     } else if (!strncmp (command, "BEGIN", 5)) {
-        streaming_stats->begin++;
+        streaming_statistics[index].begin++;
     } else if (!strncmp (command, "CHART", 5)) {
-        streaming_stats->chart++;
+        streaming_statistics[index].chart++;
     } else if (!strncmp (command, "DIMENSION", 9)) {
-        streaming_stats->dimension++;
+        streaming_statistics[index].dimension++;
     } else if (!strncmp (command, "VARIABLE", 9)) {
-        streaming_stats->variable++;
+        streaming_statistics[index].variable++;
     } else if (!strncmp (command, "CLAIMED_ID", 9)) {
-        streaming_stats->claimed_id++;
+        streaming_statistics[index].claimed_id++;
     } else if (!strncmp (command, "LABEL", 9)) {
-        streaming_stats->label++;
+        streaming_statistics[index].label++;
     } else if (!strncmp (command, "OVERWRITE", 9)) {
-        streaming_stats->overwrite++;
+        streaming_statistics[index].overwrite++;
     } else
         info ("SS [%s]", command);
 }
