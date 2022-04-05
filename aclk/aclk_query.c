@@ -241,14 +241,16 @@ static int http_api_v2(struct aclk_query_thread *query_thr, aclk_query_t query)
     }
 
     // send msg.
+    struct timeval before_mqtt;
+    now_realtime_timeval(&before_mqtt);
     aclk_http_msg_v2(query_thr->client, query->callback_topic, query->msg_id, t, query->created, w->response.code, local_buffer->buffer, local_buffer->len);
 
     struct timeval tv;
 
 cleanup:
     now_realtime_timeval(&tv);
-    log_access("%llu: %d '[ACLK]:%d' '%s' (sent/all = %zu/%zu bytes %0.0f%%, prep/sent/total = %0.2f/%0.2f/%0.2f ms) %d '%s'",
-        w->id
+    log_access("%llu: %d '[ACLK]:%d' '%s' (sent/all = %zu/%zu bytes %0.0f%%, prep/done/sent/total = %0.2f/%0.2f/%0.2f/%0.2f ms) %d '%s'",
+               w->id
         , gettid()
         , query_thr->idx
         , "DATA"
@@ -256,6 +258,7 @@ cleanup:
         , size
         , size > sent ? -(((size - sent) / (double)size) * 100.0) : ((size > 0) ? (((sent - size ) / (double)size) * 100.0) : 0.0)
         , dt_usec(&w->tv_ready, &w->tv_in) / 1000.0
+        , dt_usec(&before_mqtt, &w->tv_ready) / 1000.0
         , dt_usec(&tv, &w->tv_ready) / 1000.0
         , dt_usec(&tv, &w->tv_in) / 1000.0
         , w->response.code
