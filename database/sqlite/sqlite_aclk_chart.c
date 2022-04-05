@@ -729,13 +729,15 @@ void aclk_start_streaming(char *node_id, uint64_t sequence_id, time_t created_at
         return;
     }
 
-    struct aclk_database_worker_config *wc  = NULL;
+    struct aclk_database_worker_config *wc  = find_inactive_wc_by_node_id(node_id);
     rrd_rdlock();
     RRDHOST *host = localhost;
     while(host) {
-        if (host->node_id && !(uuid_compare(*host->node_id, node_uuid))) {
+        if (wc || (host->node_id && !(uuid_compare(*host->node_id, node_uuid)))) {
             rrd_unlock();
-            wc = (struct aclk_database_worker_config *)host->dbsync_worker ?
+
+            if (!wc)
+                 wc = (struct aclk_database_worker_config *)host->dbsync_worker ?
                      (struct aclk_database_worker_config *)host->dbsync_worker :
                      (struct aclk_database_worker_config *)find_inactive_wc_by_node_id(node_id);
             if (likely(wc)) {
@@ -962,7 +964,7 @@ void aclk_update_retention(struct aclk_database_worker_config *wc, struct aclk_d
 
         if (memory_mode == RRD_MEMORY_MODE_DBENGINE && wc->chart_updates && (dimension_update_count < ACLK_MAX_DIMENSION_CLEANUP)) {
             int live = ((now - last_entry_t) < (RRDSET_MINIMUM_DIM_LIVE_MULTIPLIER * update_every));
-            if ((!live && !wc->host) || !first_entry_t) {
+            if (!wc->host || !first_entry_t) {
                 (void)aclk_upd_dimension_event(
                     wc,
                     claim_id,
@@ -1012,8 +1014,8 @@ void aclk_update_retention(struct aclk_database_worker_config *wc, struct aclk_d
     if (!wc->host)
         hostname = get_hostname_by_node_id(wc->node_id);
 
-    log_access("ACLK STA [%s (%s)]: RETENTION MESSAGE SENT. CHECKED %u DIMENSIONS.  %u DELETED, %u STOPPED COLLECTING",
-               wc->node_id, wc->host ? wc->host->hostname : hostname ? hostname : "N/A", total_checked, total_deleted, total_stopped);
+    log_access("ACLK STA [%s (%s)]: UPDATES %d RETENTION MESSAGE SENT. CHECKED %u DIMENSIONS.  %u DELETED, %u STOPPED COLLECTING",
+               wc->node_id, wc->host ? wc->host->hostname : hostname ? hostname : "N/A", wc->chart_updates, total_checked, total_deleted, total_stopped);
     freez(hostname);
 
 #ifdef NETDATA_INTERNAL_CHECKS
