@@ -3,6 +3,8 @@
 #include "rrdpush.h"
 
 extern struct config stream_config;
+extern struct streaming_statistics *streaming_stats_new_connection(char *hostname, char *guid);
+extern void streaming_stats_command(struct streaming_statistics *streaming_stats, char *command);
 
 void destroy_receiver_state(struct receiver_state *rpt) {
     freez(rpt->key);
@@ -385,8 +387,10 @@ size_t streaming_parser(struct receiver_state *rpt, struct plugind *cd, FILE *fp
         while ((line = receiver_next_line(rpt, &pos))) {
             if (unlikely(netdata_exit || rpt->shutdown || parser_action(parser,  line)))
                 goto done;
+            streaming_stats_command(rpt->stream_stats, line);
         }
         rpt->last_msg_t = now_realtime_sec();
+        
     }
     while(!netdata_exit);
 done:
@@ -645,6 +649,7 @@ static int rrdpush_receive(struct receiver_state *rpt)
     // call the plugins.d processor to receive the metrics
     info("STREAM %s [receive from [%s]:%s]: receiving metrics...", rpt->host->hostname, rpt->client_ip, rpt->client_port);
     log_stream_connection(rpt->client_ip, rpt->client_port, rpt->key, rpt->host->machine_guid, rpt->host->hostname, "CONNECTED");
+    rpt->stream_stats = streaming_stats_new_connection(rpt->host->hostname, rpt->host->machine_guid);
 
     cd.version = rpt->stream_version;
 
@@ -659,6 +664,7 @@ static int rrdpush_receive(struct receiver_state *rpt)
 
     log_stream_connection(rpt->client_ip, rpt->client_port, rpt->key, rpt->host->machine_guid, rpt->hostname,
                           "DISCONNECTED");
+    streaming_stats_command(rpt->stream_stats, "DISCONNECTED");
     error("STREAM %s [receive from [%s]:%s]: disconnected (completed %zu updates).", rpt->hostname, rpt->client_ip,
           rpt->client_port, count);
 

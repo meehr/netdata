@@ -37,6 +37,39 @@ static struct global_statistics {
         .rrdr_result_points_generated = 0,
 };
 
+static struct streaming_statistics {
+    char *hostname;
+    char *guid;
+    uint32_t connected;
+    uint32_t disconnected;
+    uint32_t set; //maybe not uint32_t something bigger?
+    uint32_t end;
+    uint32_t begin;
+    uint32_t chart;
+    uint32_t dimension;
+    uint32_t variable;
+    uint32_t claimed_id;
+    uint32_t label;
+    uint32_t overwrite;
+    
+
+    RRDSET *st;
+    RRDDIM *rd_connected;
+    RRDDIM *rd_disconnected;
+    RRDDIM *rd_set;
+    RRDDIM *rd_end;
+    RRDDIM *rd_begin;
+    RRDDIM *rd_chart;
+    RRDDIM *rd_dimension;
+    RRDDIM *rd_variable;
+    RRDDIM *rd_claimed_id;
+    RRDDIM *rd_label;
+    RRDDIM *rd_overwrite;
+        
+} *streaming_statistics = NULL;
+
+uint32_t children;
+
 #if defined(HAVE_C___ATOMIC)
 #else
 netdata_mutex_t global_statistics_mutex = NETDATA_MUTEX_INITIALIZER;
@@ -170,6 +203,66 @@ static inline void global_statistics_copy(struct global_statistics *gs, uint8_t 
 
     global_statistics_unlock();
 #endif
+}
+
+struct streaming_statistics *streaming_stats_new_connection(char *hostname, char *guid)
+{
+    info("SS Hello for %s", hostname);
+
+    //find if this is already connected
+    for (uint32_t i=0;i<children;i++) {
+        if (!strcmp(streaming_statistics[i].guid, guid)) {
+            streaming_statistics[i].connected++;
+            return streaming_statistics;
+        }
+    }
+
+    //lock, atomic lock or smth
+    children++;
+    info("SS children [%u]", children);
+    streaming_statistics = reallocz(streaming_statistics, children * sizeof(struct streaming_statistics));
+    streaming_statistics[children-1].hostname = strdupz(hostname);
+    streaming_statistics[children-1].guid = strdupz(guid);
+    streaming_statistics[children-1].connected=1;
+    streaming_statistics[children-1].disconnected=0;
+    streaming_statistics[children-1].set=0;
+    streaming_statistics[children-1].end=0;
+    streaming_statistics[children-1].begin=0;
+    streaming_statistics[children-1].chart=0;
+    streaming_statistics[children-1].dimension=0;
+    streaming_statistics[children-1].variable=0;
+    streaming_statistics[children-1].claimed_id=0;
+    streaming_statistics[children-1].label=0;
+    streaming_statistics[children-1].overwrite=0;
+    streaming_statistics[children-1].st = NULL;
+
+    return &streaming_statistics[children-1];
+}
+
+void streaming_stats_command(struct streaming_statistics *streaming_stats, char *command)
+{
+    if (!strncmp (command, "DISCONNECTED", 12)) {
+        streaming_stats->disconnected++;
+    } else if (!strncmp (command, "SET", 3)) {
+        streaming_stats->set++;
+    } else if (!strncmp (command, "END", 3)) {
+        streaming_stats->end++;
+    } else if (!strncmp (command, "BEGIN", 5)) {
+        streaming_stats->begin++;
+    } else if (!strncmp (command, "CHART", 5)) {
+        streaming_stats->chart++;
+    } else if (!strncmp (command, "DIMENSION", 9)) {
+        streaming_stats->dimension++;
+    } else if (!strncmp (command, "VARIABLE", 9)) {
+        streaming_stats->variable++;
+    } else if (!strncmp (command, "CLAIMED_ID", 9)) {
+        streaming_stats->claimed_id++;
+    } else if (!strncmp (command, "LABEL", 9)) {
+        streaming_stats->label++;
+    } else if (!strncmp (command, "OVERWRITE", 9)) {
+        streaming_stats->overwrite++;
+    } else
+        info ("SS [%s]", command);
 }
 
 static void global_statistics_charts(void) {
@@ -930,6 +1023,58 @@ static void global_statistics_charts(void) {
         }
     }
 #endif
+
+    for (uint32_t i=0;i<children;i++)
+        {
+            info ("SS %s %u %u", streaming_statistics[i].hostname, streaming_statistics[i].connected, streaming_statistics[i].set);
+            if (unlikely(!streaming_statistics[i].st)) {
+                streaming_statistics[i].st = rrdset_create_localhost(
+                "netdata"
+                , "streaming"
+                , NULL
+                , "streaming"
+                , NULL
+                , streaming_statistics[i].hostname
+                , "commands/s"
+                , "netdata"
+                , "stats"
+                , 130511 + i
+                , localhost->rrd_update_every
+                , RRDSET_TYPE_STACKED
+                );
+
+                streaming_statistics[i].rd_connected = rrddim_add(streaming_statistics[i].st, "connected", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_disconnected = rrddim_add(streaming_statistics[i].st, "disconnected", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_set = rrddim_add(streaming_statistics[i].st, "set", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_end = rrddim_add(streaming_statistics[i].st, "end", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_begin = rrddim_add(streaming_statistics[i].st, "begin", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_chart = rrddim_add(streaming_statistics[i].st, "chart", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_dimension = rrddim_add(streaming_statistics[i].st, "dimension", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_variable = rrddim_add(streaming_statistics[i].st, "variable", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_claimed_id = rrddim_add(streaming_statistics[i].st, "claimed_id", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_label = rrddim_add(streaming_statistics[i].st, "label", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_overwrite = rrddim_add(streaming_statistics[i].st, "overwrite", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                
+            }
+            else
+                rrdset_next(streaming_statistics[i].st);
+
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_connected, streaming_statistics[i].connected);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_disconnected, streaming_statistics[i].disconnected);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_set, streaming_statistics[i].set);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_end, streaming_statistics[i].end);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_begin, streaming_statistics[i].begin);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_chart, streaming_statistics[i].chart);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_dimension, streaming_statistics[i].dimension);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_variable, streaming_statistics[i].variable);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_claimed_id, streaming_statistics[i].claimed_id);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_label, streaming_statistics[i].label);
+            rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_overwrite, streaming_statistics[i].overwrite);
+            
+            rrdset_done(streaming_statistics[i].st);
+        }
+
+    
 
 }
 
