@@ -1082,6 +1082,8 @@ void aclk_host_state_update(RRDHOST *host, int cmd)
     query->data.node_update.session_id = aclk_session_newarch;
     info("Queuing status update for node=%s, live=%d, hops=%u",(char*)query->data.node_update.node_id, cmd,
          host->system_info->hops);
+    log_access("ACLK STA Queuing status update for node=%s, live=%d, hops=%u",(char*)query->data.node_update.node_id, cmd,
+         host->system_info->hops);
     aclk_queue_query(query);
 }
 
@@ -1109,6 +1111,10 @@ void aclk_send_node_instances()
             info("Queuing status update for node=%s, live=%d, hops=%d",(char*)query->data.node_update.node_id,
                  list->live,
                  list->hops);
+            log_access("ACLK STA status update for node=%s, live=%d, hops=%d",(char*)query->data.node_update.node_id,
+                 list->live,
+                 list->hops);
+
             aclk_queue_query(query);
         } else {
             aclk_query_t create_query;
@@ -1121,6 +1127,8 @@ void aclk_send_node_instances()
             create_query->data.node_creation.machine_guid  = mallocz(UUID_STR_LEN);
             uuid_unparse_lower(list->host_id, (char*)create_query->data.node_creation.machine_guid);
             info("Queuing registration for host=%s, hops=%d",(char*)create_query->data.node_creation.machine_guid,
+                 list->hops);
+            log_access("ACLK STA Queuing registration for host=%s, hops=%d",(char*)create_query->data.node_creation.machine_guid,
                  list->hops);
             aclk_queue_query(create_query);
         }
