@@ -96,4 +96,5 @@ dist_healthconfig_DATA = \
     health.d/x509check.conf \
     health.d/zfs.conf \
     health.d/dbengine.conf \
+    health.d/streaming.conf \
     $(NULL)

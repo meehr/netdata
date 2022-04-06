@@ -40,17 +40,17 @@ static struct global_statistics {
 static struct streaming_statistics {
     char *hostname;
     char *guid;
-    uint32_t connected;
-    uint32_t disconnected;
-    uint32_t set; //maybe not uint32_t something bigger?
-    uint32_t end;
-    uint32_t begin;
-    uint32_t chart;
-    uint32_t dimension;
-    uint32_t variable;
-    uint32_t claimed_id;
-    uint32_t label;
-    uint32_t overwrite;
+    uint64_t connected;
+    uint64_t disconnected;
+    uint64_t set; //maybe not uint32_t something bigger?
+    uint64_t end;
+    uint64_t begin;
+    uint64_t chart;
+    uint64_t dimension;
+    uint64_t variable;
+    uint64_t claimed_id;
+    uint64_t label;
+    uint64_t overwrite;
     
 
     RRDSET *st;
@@ -208,28 +208,18 @@ static inline void global_statistics_copy(struct global_statistics *gs, uint8_t 
 
 uint32_t streaming_stats_new_connection(char *hostname, char *guid)
 {
-    info("SS Hello for %s", hostname);
+    netdata_mutex_lock(&streaming_statistics_mutex);
 
     //find if this is already connected
     for (uint32_t i=0;i<children;i++) {
         if (!strcmp(streaming_statistics[i].guid, guid)) {
             streaming_statistics[i].connected++;
+            netdata_mutex_unlock(&streaming_statistics_mutex);
             return i;
         }
     }
-
-#if defined(HAVE_C___ATOMIC)
-    __atomic_fetch_add(&children, 1, __ATOMIC_SEQ_CST);
-    streaming_statistics = reallocz(streaming_statistics, children * sizeof(struct streaming_statistics));
-#else    
-    //lock, atomic lock or smth
-    //and this is stupid, make it a linked list!
-    global_statistics_lock();    
     children++;
     streaming_statistics = reallocz(streaming_statistics, children * sizeof(struct streaming_statistics));
-    global_statistics_unlock();
-#endif
-    //info("SS children [%u]", children);
     streaming_statistics[children-1].hostname = strdupz(hostname);
     streaming_statistics[children-1].guid = strdupz(guid);
     streaming_statistics[children-1].connected=1;
@@ -244,9 +234,8 @@ uint32_t streaming_stats_new_connection(char *hostname, char *guid)
     streaming_statistics[children-1].label=0;
     streaming_statistics[children-1].overwrite=0;
     streaming_statistics[children-1].st = NULL;
-
+    netdata_mutex_unlock(&streaming_statistics_mutex);
     return children-1;
-    
 }
 
 void streaming_stats_command(uint32_t index, char *command)
@@ -1034,6 +1023,7 @@ static void global_statistics_charts(void) {
     }
 #endif
 
+    netdata_mutex_lock(&streaming_statistics_mutex);
     for (uint32_t i=0;i<children;i++)
         {
             //info ("SS %s %u %u", streaming_statistics[i].hostname, streaming_statistics[i].connected, streaming_statistics[i].set);
@@ -1083,7 +1073,7 @@ static void global_statistics_charts(void) {
             
             rrdset_done(streaming_statistics[i].st);
         }
-
+    netdata_mutex_unlock(&streaming_statistics_mutex);
     
 
 }

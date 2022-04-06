@@ -3,8 +3,8 @@
 #include "rrdpush.h"
 
 extern struct config stream_config;
-extern struct streaming_statistics *streaming_stats_new_connection(char *hostname, char *guid);
-extern void streaming_stats_command(struct streaming_statistics *streaming_stats, char *command);
+extern uint32_t streaming_stats_new_connection(char *hostname, char *guid);
+extern void streaming_stats_command(uint32_t index, char *command);
 
 void destroy_receiver_state(struct receiver_state *rpt) {
     freez(rpt->key);
