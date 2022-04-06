@@ -69,6 +69,7 @@ static struct streaming_statistics {
 } *streaming_statistics = NULL;
 
 uint32_t children;
+netdata_mutex_t streaming_statistics_mutex = NETDATA_MUTEX_INITIALIZER;
 
 #if defined(HAVE_C___ATOMIC)
 #else
@@ -217,11 +218,18 @@ uint32_t streaming_stats_new_connection(char *hostname, char *guid)
         }
     }
 
+#if defined(HAVE_C___ATOMIC)
+    __atomic_fetch_add(&children, 1, __ATOMIC_SEQ_CST);
+    streaming_statistics = reallocz(streaming_statistics, children * sizeof(struct streaming_statistics));
+#else    
     //lock, atomic lock or smth
     //and this is stupid, make it a linked list!
+    global_statistics_lock();    
     children++;
-    //info("SS children [%u]", children);
     streaming_statistics = reallocz(streaming_statistics, children * sizeof(struct streaming_statistics));
+    global_statistics_unlock();
+#endif
+    //info("SS children [%u]", children);
     streaming_statistics[children-1].hostname = strdupz(hostname);
     streaming_statistics[children-1].guid = strdupz(guid);
     streaming_statistics[children-1].connected=1;
@@ -238,6 +246,7 @@ uint32_t streaming_stats_new_connection(char *hostname, char *guid)
     streaming_statistics[children-1].st = NULL;
 
     return children-1;
+    
 }
 
 void streaming_stats_command(uint32_t index, char *command)
@@ -1031,13 +1040,13 @@ static void global_statistics_charts(void) {
             if (unlikely(!streaming_statistics[i].st)) {
                 streaming_statistics[i].st = rrdset_create_localhost(
                 "netdata"
-                , streaming_statistics[i].hostname
+                , streaming_statistics[i].guid
                 , NULL
                 , "streaming"
-                , NULL
+                , "streaming"
                 , streaming_statistics[i].hostname
                 , "commands/s"
-                , "netdata"
+                , "streaming_child"
                 , "stats"
                 , 130511 + i
                 , localhost->rrd_update_every
