@@ -68,7 +68,7 @@ static int aclk_add_chart_payload(struct aclk_database_worker_config *wc, uuid_t
     date_submitted = payload_sent(wc->uuid_str, uuid, payload, payload_size);
     if (send_status)
         *send_status = date_submitted;
-    if (date_submitted == 1)
+    if (date_submitted)
         return 0;
 
     if (unlikely(!res_chart)) {
