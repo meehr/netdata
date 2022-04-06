@@ -240,6 +240,7 @@ uint32_t streaming_stats_new_connection(char *hostname, char *guid)
 
 void streaming_stats_command(uint32_t index, char *command)
 {
+    netdata_mutex_lock(&streaming_statistics_mutex);
     if (!strncmp (command, "DISCONNECTED", 12)) {
         streaming_statistics[index].disconnected++;
     } else if (!strncmp (command, "SET", 3)) {
@@ -262,6 +263,7 @@ void streaming_stats_command(uint32_t index, char *command)
         streaming_statistics[index].overwrite++;
     } else
         info ("SS [%s]", command);
+    netdata_mutex_unlock(&streaming_statistics_mutex);
 }
 
 static void global_statistics_charts(void) {
