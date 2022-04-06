@@ -284,6 +284,8 @@ inline int parser_action(PARSER *parser, char *input)
         tmp_keyword = tmp_keyword->next;
     }
 
+
+
     if (unlikely(!action_function_list)) {
         if (unlikely(parser->unknown_function))
             rc = parser->unknown_function(words, parser->user, NULL);

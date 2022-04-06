@@ -136,6 +136,8 @@ struct receiver_state {
     unsigned int rrdpush_compression;
     struct decompressor_state *decompressor;
 #endif
+    //struct streaming_statistics *stream_stats;
+    uint32_t stream_stats;
 };
 
 
