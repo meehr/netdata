@@ -1026,17 +1026,16 @@ static void global_statistics_charts(void) {
     netdata_mutex_lock(&streaming_statistics_mutex);
     for (uint32_t i=0;i<children;i++)
         {
-            //info ("SS %s %u %u", streaming_statistics[i].hostname, streaming_statistics[i].connected, streaming_statistics[i].set);
             if (unlikely(!streaming_statistics[i].st)) {
                 streaming_statistics[i].st = rrdset_create_localhost(
                 "netdata"
-                , streaming_statistics[i].guid
+                , streaming_statistics[i].hostname
                 , NULL
                 , "streaming"
-                , "streaming"
-                , streaming_statistics[i].hostname
+                , "netdata.streaming"
+                , "Commands/s from streaming children"
                 , "commands/s"
-                , "streaming_child"
+                , "netdata"
                 , "stats"
                 , 130511 + i
                 , localhost->rrd_update_every
