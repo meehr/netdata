@@ -1480,6 +1480,8 @@ void sql_build_context_param_list(struct context_param **param_list, RRDHOST *ho
         (*param_list)->last_entry_t = 0;
         (*param_list)->rd = NULL;
         (*param_list)->flags = CONTEXT_FLAGS_ARCHIVE;
+        (*param_list)->chart_count = 0;
+        (*param_list)->dimension_count = 0;
         if (chart)
             (*param_list)->flags |= CONTEXT_FLAGS_CHART;
         else
@@ -1544,6 +1546,7 @@ void sql_build_context_param_list(struct context_param **param_list, RRDHOST *ho
             uuid_copy(chart_id, *(uuid_t *)sqlite3_column_blob(res, 7));
             st->last_entry_t = 0;
             st->rrdhost = host;
+            (*param_list)->chart_count++;
         }
 
         if (unlikely(find_dimension_first_last_t(machine_guid, (char *)st->name, (char *)sqlite3_column_text(res, 1),
@@ -1559,6 +1562,7 @@ void sql_build_context_param_list(struct context_param **param_list, RRDHOST *ho
             rrddim_flag_set(rd, RRDDIM_FLAG_HIDDEN);
         rd->next = (*param_list)->rd;
         (*param_list)->rd = rd;
+        (*param_list)->dimension_count++;
     }
     if (st) {
         if (!st->counter) {

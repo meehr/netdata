@@ -50,6 +50,8 @@ struct context_param {
     RRDDIM *rd;
     time_t first_entry_t;
     time_t last_entry_t;
+    uint32_t chart_count;
+    uint32_t dimension_count;
     uint8_t flags;
 };
 

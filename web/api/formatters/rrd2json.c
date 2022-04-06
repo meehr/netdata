@@ -76,6 +76,8 @@ void build_context_param_list(struct context_param **param_list, RRDSET *st)
         (*param_list)->last_entry_t = 0;
         (*param_list)->flags = CONTEXT_FLAGS_CONTEXT;
         (*param_list)->rd = NULL;
+        (*param_list)->chart_count = 0;
+        (*param_list)->dimension_count = 0;
     }
 
     RRDDIM *rd1;
@@ -84,6 +86,7 @@ void build_context_param_list(struct context_param **param_list, RRDSET *st)
 
     (*param_list)->first_entry_t = MIN((*param_list)->first_entry_t, rrdset_first_entry_t_nolock(st));
     (*param_list)->last_entry_t  = MAX((*param_list)->last_entry_t, rrdset_last_entry_t_nolock(st));
+    (*param_list)->chart_count++;
 
     rrddim_foreach_read(rd1, st) {
         RRDDIM *rd = mallocz(rd1->memsize);
@@ -92,10 +95,11 @@ void build_context_param_list(struct context_param **param_list, RRDSET *st)
         rd->name = strdupz(rd1->name);
         rd->state = mallocz(sizeof(*rd->state));
         memcpy(rd->state, rd1->state, sizeof(*rd->state));
-        memcpy(&rd->state->collect_ops, &rd1->state->collect_ops, sizeof(struct rrddim_collect_ops));
+        //memcpy(&rd->state->collect_ops, &rd1->state->collect_ops, sizeof(struct rrddim_collect_ops));
         memcpy(&rd->state->query_ops, &rd1->state->query_ops, sizeof(struct rrddim_query_ops));
         rd->next = (*param_list)->rd;
         (*param_list)->rd = rd;
+        (*param_list)->dimension_count++;
     }
 
     rrdset_unlock(st);
