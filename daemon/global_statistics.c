@@ -261,7 +261,7 @@ void streaming_stats_command(uint32_t index, char *command)
         streaming_statistics[index].label++;
     } else if (!strncmp (command, "OVERWRITE", 9)) {
         streaming_statistics[index].overwrite++;
-
+    }
     netdata_mutex_unlock(&streaming_statistics_mutex);
 }
 
