@@ -1042,17 +1042,17 @@ static void global_statistics_charts(void) {
                 , RRDSET_TYPE_STACKED
                 );
 
-                streaming_statistics[i].rd_connected = rrddim_add(streaming_statistics[i].st, "connected", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_disconnected = rrddim_add(streaming_statistics[i].st, "disconnected", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_set = rrddim_add(streaming_statistics[i].st, "set", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_end = rrddim_add(streaming_statistics[i].st, "end", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_begin = rrddim_add(streaming_statistics[i].st, "begin", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_chart = rrddim_add(streaming_statistics[i].st, "chart", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_dimension = rrddim_add(streaming_statistics[i].st, "dimension", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_variable = rrddim_add(streaming_statistics[i].st, "variable", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_claimed_id = rrddim_add(streaming_statistics[i].st, "claimed_id", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_label = rrddim_add(streaming_statistics[i].st, "label", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
-                streaming_statistics[i].rd_overwrite = rrddim_add(streaming_statistics[i].st, "overwrite", NULL, 1, 1, RRD_ALGORITHM_ABSOLUTE);
+                streaming_statistics[i].rd_connected = rrddim_add(streaming_statistics[i].st, "connected", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_disconnected = rrddim_add(streaming_statistics[i].st, "disconnected", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_set = rrddim_add(streaming_statistics[i].st, "set", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_end = rrddim_add(streaming_statistics[i].st, "end", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_begin = rrddim_add(streaming_statistics[i].st, "begin", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_chart = rrddim_add(streaming_statistics[i].st, "chart", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_dimension = rrddim_add(streaming_statistics[i].st, "dimension", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_variable = rrddim_add(streaming_statistics[i].st, "variable", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_claimed_id = rrddim_add(streaming_statistics[i].st, "claimed_id", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_label = rrddim_add(streaming_statistics[i].st, "label", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
+                streaming_statistics[i].rd_overwrite = rrddim_add(streaming_statistics[i].st, "overwrite", NULL, 1, 1, RRD_ALGORITHM_INCREMENTAL);
                 
             }
             else
@@ -1071,18 +1071,6 @@ static void global_statistics_charts(void) {
             rrddim_set_by_pointer(streaming_statistics[i].st, streaming_statistics[i].rd_overwrite, streaming_statistics[i].overwrite);
             
             rrdset_done(streaming_statistics[i].st);
-
-            streaming_statistics[i].connected = 0;
-            streaming_statistics[i].disconnected = 0;
-            streaming_statistics[i].set = 0;
-            streaming_statistics[i].end = 0;
-            streaming_statistics[i].begin = 0;
-            streaming_statistics[i].chart = 0;
-            streaming_statistics[i].dimension = 0;
-            streaming_statistics[i].variable = 0;
-            streaming_statistics[i].claimed_id = 0;
-            streaming_statistics[i].label = 0;
-            streaming_statistics[i].overwrite = 0;
         }
     netdata_mutex_unlock(&streaming_statistics_mutex);
     
