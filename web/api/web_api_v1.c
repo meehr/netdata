@@ -410,6 +410,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
     char *max_anomaly_rates_str = NULL;
     char *context = NULL;
     char *chart_label_key = NULL;
+    char *chart_labels_filter = NULL;
 
     int group = RRDR_GROUPING_AVERAGE;
     uint32_t format = DATASOURCE_JSON;
@@ -430,6 +431,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
 
         if(!strcmp(name, "context")) context = value;
         else if(!strcmp(name, "chart_label_key")) chart_label_key = value;
+        else if(!strcmp(name, "chart_labels_filter")) chart_labels_filter = value;
         else if(!strcmp(name, "chart")) chart = value;
         else if(!strcmp(name, "dimension") || !strcmp(name, "dim") || !strcmp(name, "dimensions") || !strcmp(name, "dims")) {
             if(!dimensions) dimensions = buffer_create(100);
@@ -517,8 +519,9 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
         rrdhost_rdlock(host);
         rrdset_foreach_read(st1, host) {
             if (st1->hash_context == context_hash && !strcmp(st1->context, context) &&
-                (!chart_label_key || rrdset_contains_label_keylist(st1, chart_label_key)))
-                build_context_param_list(&context_param_list, st1);
+                (!chart_label_key || rrdset_contains_label_keylist(st1, chart_label_key)) &&
+                (!chart_labels_filter || rrdset_matches_label_keys(st1, chart_labels_filter)))
+                    build_context_param_list(&context_param_list, st1);
         }
         rrdhost_unlock(host);
         now_realtime_timeval(&build_context_end);
@@ -526,7 +529,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
         if (likely(context_param_list && context_param_list->rd))  // Just set the first one
             st = context_param_list->rd->rrdset;
         else {
-            if (!chart_label_key)
+            if (!chart_label_key && !chart_labels_filter)
                 sql_build_context_param_list(&context_param_list, host, context, NULL);
         }
     }
