@@ -2038,3 +2038,120 @@ struct label *rrdset_lookup_label_key(RRDSET *st, char *key, uint32_t key_hash)
     }
     return ret;
 }
+
+static inline int k8s_space(char c) {
+    switch(c) {
+        case ':':
+        case ',':
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+
+static inline int string_splitter(char *str, char **words, int max_words, int (*custom_isspace)(char), char *recover_input, char **recover_location, int max_recover)
+{
+    char *s = str, quote = 0;
+    int i = 0, j, rec = 0;
+    char *recover = recover_input;
+
+    // skip all white space
+    while (unlikely(custom_isspace(*s)))
+        s++;
+
+    // check for quote
+    if (unlikely(*s == '\'' || *s == '"')) {
+        quote = *s; // remember the quote
+        s++;        // skip the quote
+    }
+
+    // store the first word
+    words[i++] = s;
+
+    // while we have something
+    while (likely(*s)) {
+        // if it is escape
+        if (unlikely(*s == '\\' && s[1])) {
+            s += 2;
+            continue;
+        }
+
+        // if it is quote
+        else if (unlikely(*s == quote)) {
+            quote = 0;
+            if (recover && rec < max_recover) {
+                recover_location[rec++] = s;
+                *recover++ = *s;
+            }
+            *s = ' ';
+            continue;
+        }
+
+        // if it is a space
+        else if (unlikely(quote == 0 && custom_isspace(*s))) {
+            // terminate the word
+            if (recover && rec < max_recover) {
+                if (!rec || (rec && recover_location[rec-1] != s)) {
+                    recover_location[rec++] = s;
+                    *recover++ = *s;
+                }
+            }
+            *s++ = '\0';
+
+            // skip all white space
+            while (likely(custom_isspace(*s)))
+                s++;
+
+            // check for quote
+            if (unlikely(*s == '\'' || *s == '"')) {
+                quote = *s; // remember the quote
+                s++;        // skip the quote
+            }
+
+            // if we reached the end, stop
+            if (unlikely(!*s))
+                break;
+
+            // store the next word
+            if (likely(i < max_words))
+                words[i++] = s;
+            else
+                break;
+        }
+
+        // anything else
+        else
+            s++;
+    }
+
+    // terminate the words
+    j = i;
+    while (likely(j < max_words))
+        words[j++] = NULL;
+
+    return i;
+}
+
+int rrdset_matches_label_keys(RRDSET *st, char *keylist)
+{
+    struct label_index *labels = &st->state->labels;
+
+    if (!labels->head)
+        return 0;
+
+    struct label *one_label;
+
+    char *words[32] = { NULL };
+
+    int rc = string_splitter(keylist, words, 32, k8s_space, NULL, NULL, 0);
+
+    int ret = 1;
+    netdata_rwlock_rdlock(&labels->labels_rwlock);
+    for (int i = 0; ret && i < rc - 1; i += 2) {
+        one_label = label_list_lookup_key(labels->head, words[i], 0);
+        ret = !(!one_label || strcmp(one_label->value, words[i + 1]));
+    }
+    netdata_rwlock_unlock(&labels->labels_rwlock);
+    return ret;
+}
