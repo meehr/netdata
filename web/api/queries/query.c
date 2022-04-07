@@ -846,12 +846,15 @@ static RRDR *rrd2rrdr_fixedstep(
         , struct context_param *context_param_list
 ) {
     int aligned = !(options & RRDR_OPTION_NOT_ALIGNED);
+    uint32_t timeout = 0;
 
     // the duration of the chart
     time_t duration = before_requested - after_requested;
     long available_points = duration / update_every;
 
     RRDDIM *temp_rd = context_param_list ? context_param_list->rd : NULL;
+    if (context_param_list)
+        timeout = context_param_list->timeout;
 
     if(duration <= 0 || available_points <= 0)
         return rrdr_create(st, 1, context_param_list);
@@ -1100,6 +1103,10 @@ static RRDR *rrd2rrdr_fixedstep(
 
     RRDDIM *rd;
     long c, dimensions_used = 0, dimensions_nonzero = 0;
+    struct timeval query_start_time;
+    struct timeval query_current_time;
+    if (timeout)
+        now_realtime_timeval(&query_start_time);
     for(rd = temp_rd?temp_rd:st->dimensions, c = 0 ; rd && c < dimensions_count ; rd = rd->next, c++) {
 
         // if we need a percentage, we need to calculate all dimensions
@@ -1121,6 +1128,8 @@ static RRDR *rrd2rrdr_fixedstep(
                 , before_wanted
                 , options
                 );
+        if (timeout)
+            now_realtime_timeval(&query_current_time);
 
         if(r->od[c] & RRDR_DIMENSION_NONZERO)
             dimensions_nonzero++;
@@ -1158,6 +1167,12 @@ static RRDR *rrd2rrdr_fixedstep(
         }
 
         dimensions_used++;
+        if (timeout && (dt_usec(&query_start_time, &query_current_time) / 1000.0) > timeout) {
+            log_access("QUERY CANCELED RUNTIME EXCEEDED %0.2f ms (LIMIT %u ms)",
+                       dt_usec(&query_start_time, &query_current_time) / 1000.0, timeout);
+            r->result_options |= RRDR_RESULT_OPTION_CANCEL;
+            break;
+        }
     }
 
     #ifdef NETDATA_INTERNAL_CHECKS

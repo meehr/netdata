@@ -78,6 +78,8 @@ void build_context_param_list(struct context_param **param_list, RRDSET *st)
         (*param_list)->rd = NULL;
         (*param_list)->chart_count = 0;
         (*param_list)->dimension_count = 0;
+        (*param_list)->timeout = 0;
+
     }
 
     RRDDIM *rd1;
@@ -222,16 +224,30 @@ int rrdset2anything_api_v1(
         , struct context_param *context_param_list
         , char *chart_label_key
         , int max_anomaly_rates
-) {
-
+)
+{
     if (context_param_list && !(context_param_list->flags & CONTEXT_FLAGS_ARCHIVE))
         st->last_accessed_time = now_realtime_sec();
 
-    RRDR *r = rrd2rrdr(st, points, after, before, group_method, group_time, options, dimensions?buffer_tostring(dimensions):NULL, context_param_list);
-    if(!r) {
+    RRDR *r = rrd2rrdr(
+        st,
+        points,
+        after,
+        before,
+        group_method,
+        group_time,
+        options,
+        dimensions ? buffer_tostring(dimensions) : NULL,
+        context_param_list);
+    if (!r) {
         buffer_strcat(wb, "Cannot generate output with these parameters on this chart.");
         return HTTP_RESP_INTERNAL_SERVER_ERROR;
     }
+
+//    if (r->result_options & RRDR_RESULT_OPTION_CANCEL) {
+//       rrdr_free(r);
+//       return HTTP_RESP_NOT_FOUND;
+//    }
 
     if (st && st->state && st->state->is_ar_chart)
         ml_process_rrdr(r, max_anomaly_rates);
@@ -408,6 +424,11 @@ int rrdset2anything_api_v1(
         break;
     }
 
+    int return_code = HTTP_RESP_OK;
+    if (r->result_options & RRDR_RESULT_OPTION_CANCEL)
+        return_code = 503;
+
     rrdr_free(r);
-    return HTTP_RESP_OK;
+
+    return return_code;
 }

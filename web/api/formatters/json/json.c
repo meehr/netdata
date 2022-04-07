@@ -9,6 +9,9 @@ void rrdr2json(RRDR *r, BUFFER *wb, RRDR_OPTIONS options, int datatable,  struct
 {
     RRDDIM *temp_rd = context_param_list ? context_param_list->rd : NULL;
 
+    if (r->result_options & RRDR_RESULT_OPTION_CANCEL)
+        return;
+
     int should_lock = (!context_param_list || !(context_param_list->flags & CONTEXT_FLAGS_ARCHIVE));
 
     if (should_lock)

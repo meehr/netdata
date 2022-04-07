@@ -406,6 +406,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
     char *after_str = NULL;
     char *group_time_str = NULL;
     char *points_str = NULL;
+    char *timeout_str = NULL;
     char *max_anomaly_rates_str = NULL;
     char *context = NULL;
     char *chart_label_key = NULL;
@@ -438,6 +439,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
         else if(!strcmp(name, "after")) after_str = value;
         else if(!strcmp(name, "before")) before_str = value;
         else if(!strcmp(name, "points")) points_str = value;
+        else if(!strcmp(name, "timeout")) timeout_str = value;
         else if(!strcmp(name, "gtime")) group_time_str = value;
         else if(!strcmp(name, "group")) {
             group = web_client_api_request_v1_data_group(value, RRDR_GROUPING_AVERAGE);
@@ -506,11 +508,11 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
     }
 
     struct context_param  *context_param_list = NULL;
+    struct timeval build_context_start, build_context_end;
     if (context && !chart) {
         RRDSET *st1;
         uint32_t context_hash = simple_hash(context);
 
-        struct timeval build_context_start, build_context_end;
         now_realtime_timeval(&build_context_start);
         rrdhost_rdlock(host);
         rrdset_foreach_read(st1, host) {
@@ -520,7 +522,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
         }
         rrdhost_unlock(host);
         now_realtime_timeval(&build_context_end);
-        log_access("QUERY BUILD CONTEXT TIME %0.2f ms", dt_usec(&build_context_start, &build_context_end) / 1000.0);
+//        log_access("QUERY BUILD CONTEXT TIME %0.2f ms", dt_usec(&build_context_start, &build_context_end) / 1000.0);
         if (likely(context_param_list && context_param_list->rd))  // Just set the first one
             st = context_param_list->rd->rrdset;
         else {
@@ -571,6 +573,7 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
     long long before = (before_str && *before_str)?str2l(before_str):0;
     long long after  = (after_str  && *after_str) ?str2l(after_str):-600;
     int       points = (points_str && *points_str)?str2i(points_str):0;
+    int       timeout = (timeout_str && *timeout_str)?str2i(timeout_str): 0;
     long      group_time = (group_time_str && *group_time_str)?str2l(group_time_str):0;
     int       max_anomaly_rates = (max_anomaly_rates_str && *max_anomaly_rates_str) ? str2i(max_anomaly_rates_str) : 0;
 
@@ -615,8 +618,14 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
         buffer_strcat(w->response.data, "(");
     }
 
-    if (context_param_list)
-        log_access("CONTEXT CONTAINS %u CHARTS AND %u DIMENSIONS", context_param_list->chart_count, context_param_list->dimension_count);
+    if (context_param_list) {
+        log_access(
+            "CONTEXT CONTAINS %u CHARTS AND %u DIMENSIONS QUERY BUILD CONTEXT TIME %0.2f ms",
+            context_param_list->chart_count,
+            context_param_list->dimension_count,
+            dt_usec(&build_context_start, &build_context_end) / 1000.0);
+        context_param_list->timeout = (uint32_t) timeout;
+    }
     ret = rrdset2anything_api_v1(st, w->response.data, dimensions, format,
                                  points, after, before, group, group_time,
                                  options, &last_timestamp_in_data, context_param_list,

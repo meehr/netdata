@@ -52,6 +52,7 @@ struct context_param {
     time_t last_entry_t;
     uint32_t chart_count;
     uint32_t dimension_count;
+    uint32_t timeout;
     uint8_t flags;
 };
 

@@ -1482,6 +1482,7 @@ void sql_build_context_param_list(struct context_param **param_list, RRDHOST *ho
         (*param_list)->flags = CONTEXT_FLAGS_ARCHIVE;
         (*param_list)->chart_count = 0;
         (*param_list)->dimension_count = 0;
+        (*param_list)->timeout = 0;
         if (chart)
             (*param_list)->flags |= CONTEXT_FLAGS_CHART;
         else

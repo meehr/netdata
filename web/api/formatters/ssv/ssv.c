@@ -6,6 +6,9 @@ void rrdr2ssv(RRDR *r, BUFFER *wb, RRDR_OPTIONS options, const char *prefix, con
     //info("RRD2SSV(): %s: BEGIN", r->st->id);
     long i;
 
+    if (r->result_options & RRDR_RESULT_OPTION_CANCEL)
+        return;
+
     buffer_strcat(wb, prefix);
     long start = 0, end = rrdr_rows(r), step = 1;
     if(!(options & RRDR_OPTION_REVERSED)) {
