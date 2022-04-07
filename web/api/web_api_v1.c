@@ -517,10 +517,12 @@ inline int web_client_api_request_v1_data(RRDHOST *host, struct web_client *w, c
 
         now_realtime_timeval(&build_context_start);
         rrdhost_rdlock(host);
+        char *words[32];
+        int word_count = 0;
         rrdset_foreach_read(st1, host) {
             if (st1->hash_context == context_hash && !strcmp(st1->context, context) &&
                 (!chart_label_key || rrdset_contains_label_keylist(st1, chart_label_key)) &&
-                (!chart_labels_filter || rrdset_matches_label_keys(st1, chart_labels_filter)))
+                (!chart_labels_filter || rrdset_matches_label_keys(st1, chart_labels_filter, words, &word_count)))
                     build_context_param_list(&context_param_list, st1);
         }
         rrdhost_unlock(host);

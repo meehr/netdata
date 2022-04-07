@@ -2133,7 +2133,7 @@ static inline int string_splitter(char *str, char **words, int max_words, int (*
     return i;
 }
 
-int rrdset_matches_label_keys(RRDSET *st, char *keylist)
+int rrdset_matches_label_keys(RRDSET *st, char *keylist, char *words[], int *word_count)
 {
     struct label_index *labels = &st->state->labels;
 
@@ -2142,15 +2142,15 @@ int rrdset_matches_label_keys(RRDSET *st, char *keylist)
 
     struct label *one_label;
 
-    char *words[32] = { NULL };
-
-    int rc = string_splitter(keylist, words, 32, k8s_space, NULL, NULL, 0);
+    if (!*word_count)
+        *word_count = string_splitter(keylist, words, 32, k8s_space, NULL, NULL, 0);
 
     int ret = 1;
     netdata_rwlock_rdlock(&labels->labels_rwlock);
-    for (int i = 0; ret && i < rc - 1; i += 2) {
-        one_label = label_list_lookup_key(labels->head, words[i], 0);
-        ret = !(!one_label || strcmp(one_label->value, words[i + 1]));
+    for (int i = 0; ret && i < *word_count - 1; i += 2) {
+        uint32_t key_hash = simple_hash(words[i]);
+        one_label = label_list_lookup_key(labels->head, words[i], key_hash);
+        ret = (one_label && !strcmp(one_label->value, words[i + 1]));
     }
     netdata_rwlock_unlock(&labels->labels_rwlock);
     return ret;
