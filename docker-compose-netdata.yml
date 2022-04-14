@@ -1,0 +1,56 @@
+version: '3'
+
+volumes:
+  netdataconfig:
+  netdatalib:
+  netdatacache:
+
+networks:
+  nginx_proxy_frontend:
+    # add this if the network is already existing!
+    external: true
+  nginx_proxy_backend:
+    # add this if the network is already existing!
+    external: true
+
+services:
+  netdata:
+    image: netdata/netdata
+    container_name: netdata
+    hostname: netdata.phoenyx.me # set to fqdn of host
+    ports:
+      - 19999:19999
+    restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    environment:
+      - PGID=1001
+      - DOCKER_HOST=docker_sock_proxy:2375
+      - NETDATA_CLAIM_TOKEN=cLzoE6LAS7MNCX6-yf3AXilPcK9Fe1nvh1dfUCV3P2sGz44AvCeawyXoyafzSBsY3Kn2MrMHQ-SNMpNRklLgGDPnziaym5mYCHImU7JZh-dsTGGh_SBp2KS_blAgGZ7KOyywRzk
+      - NETDATA_CLAIM_URL=https://app.netdata.cloud
+      - NETDATA_CLAIM_ROOMS=83e66a2c-3bbf-439a-be6b-160f6a852e3d
+    volumes:
+      - ./netdataconfig/netdata:/etc/netdata
+      - netdatalib:/var/lib/netdata
+      - netdatacache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+    networks:
+      - nginx_proxy_frontend
+      - nginx_proxy_backend
+
+  docker_sock_proxy:
+    image: tecnativa/docker-socket-proxy
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+    privileged: true
+    networks:
+      - nginx_proxy_frontend
+      - nginx_proxy_backend
